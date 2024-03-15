@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Processing App</title>
+</head>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        flex-direction: column;
+    }
+
+    h1, h2 {
+        color: #333;
+    }
+
+    #options {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    button {
+        background-color: #4caf50;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    #audioProcessingForm, #audioRecordingSection {
+        display: none;
+        margin-top: 20px;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    input[type="file"] {
+        display: block;
+        margin-bottom: 16px;
+    }
+
+    button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    hr {
+        margin-top: 20px;
+    }
+
+    #recordedAudio {
+        margin-top: 20px;
+    }
+
+    .resultSection {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #eee;
+        border-radius: 8px;
+    }
+</style>
+
+<body>
+    <h1>Audio Transcription & Translation</h1>
+
+    <!-- Options to Record Audio or Upload File -->
+    <div id="options">
+        <button id="recordOption">Record Audio</button>
+        <button id="uploadOption">Upload File</button>
+    </div>
+
+    <!-- File Upload Form -->
+    <form id="audioProcessingForm" action="/process_audio" method="post" enctype="multipart/form-data">
+        <label for="audio_file">Choose an audio file:</label>
+        <input type="file" name="audio_file" id="audio_file" accept="audio/*" required>
+        <br>
+        <input type="submit" value="Process Audio">
+    </form>
+    
+    <!-- Audio Recording -->
+    <div id="audioRecordingSection">
+        <h2>Record Audio</h2>
+        <button id="startRecording">Start Recording</button>
+        <p><button id="stopRecording" disabled>Stop Recording</button></p>
+        <br>
+        <audio id="recordedAudio" controls></audio>
+    
+        <!-- New "Process Audio" button -->
+        <button id="processAudio" disabled>Process Audio</button>
+    </div>
+
+    <!-- Display transcription and translation results -->
+    <!-- Display transcription and translation results -->
+    <div id="resultsSection" style="display: none;" class="resultSection">
+        <h3>Transcription & Translation Results</h3>
+        <div id="sampleTextSection">
+            <p><span id="transcriptionResult"></span></p>
+            <p><span id="translationResultSection"></span></p>
+        </div>
+    </div>
+
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('audioProcessingForm').addEventListener('submit', function (event) {
+                // Prevent the form from submitting the traditional way
+                event.preventDefault();
+        
+                // Simulate transcription and translation logic
+                const audioFile = document.getElementById('audio_file').files[0];
+        
+                // Simulate transcription result (replace this with actual transcription logic)
+                const transcriptionResult = "{{ sample_text1 }}";
+        
+                // Simulate translation result (replace this with actual translation logic)
+                const translationResult = "{{sample_text2}}"; 
+        
+                // Display the results in the respective divs
+                document.getElementById('transcriptionResult').innerText = 'Transcription:' + transcriptionResult;
+                document.getElementById('translationResultSection').innerText = 'Translation: ' + translationResult; 
+
+                // Show the results section
+                document.getElementById('resultsSection').style.display = 'block';
+            });
+
+            document.getElementById('recordOption').addEventListener('click', showRecordingSection);
+            document.getElementById('uploadOption').addEventListener('click', showUploadForm);
+            document.getElementById('startRecording').addEventListener('click', startRecording);
+            document.getElementById('stopRecording').addEventListener('click', stopRecording);
+            document.getElementById('processAudio').addEventListener('click', processAudio);
+        });
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const resetRecording = () => {
+            // Clear the audioChunks array when starting a new recording
+            audioChunks = [];
+            
+            // Reset recorded audio src
+            document.getElementById('recordedAudio').src = '';
+        
+            // Enable the "Start Recording" button and disable others
+            document.getElementById('startRecording').disabled = false;
+            document.getElementById('stopRecording').disabled = true;
+            document.getElementById('processAudio').disabled = true;
+        };
+        
+        const showRecordingSection = () => {
+            document.getElementById('options').style.display = 'none';
+            document.getElementById('audioRecordingSection').style.display = 'block';
+            document.getElementById('processAudio').disabled = true; // Disable the "Process Audio" button initially
+        };
+
+        const showUploadForm = () => {
+            document.getElementById('options').style.display = 'none';
+            document.getElementById('audioProcessingForm').style.display = 'block';
+            document.getElementById('processAudio').disabled = true; // Disable the "Process Audio" button initially
+        };
+
+        const startRecording = () => {
+            // Reset elements and variables before starting a new recording
+            resetRecording();
+        
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+        
+                    mediaRecorder.ondataavailable = event => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+        
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        document.getElementById('recordedAudio').src = audioUrl;
+                        document.getElementById('audio_file').files = [new File([audioBlob], 'recorded_audio.wav')];
+                        document.getElementById('processAudio').disabled = false; // Enable the "Process Audio" button after recording stops
+                    };
+        
+                    mediaRecorder.start();
+                    document.getElementById('startRecording').disabled = true;
+                    document.getElementById('stopRecording').disabled = false;
+                })
+                .catch(error => console.error('Error accessing microphone:', error));
+        };
+        
+
+        const stopRecording = () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                document.getElementById('startRecording').disabled = false;
+                document.getElementById('stopRecording').disabled = true;
+
+                // Enable the "Process Audio" button only if there is recorded audio
+                document.getElementById('processAudio').disabled = audioChunks.length > 0;
+            }
+        };
+
+        const playRecording = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            document.getElementById('recordedAudio').src = audioUrl;
+        };
+
+        const processAudio = () => {
+            console.log("Processing audio...");
+        
+            // Check if there is recorded audio
+            if (audioChunks.length === 0) {
+                console.log("No recorded audio available for processing.");
+                return;
+            }
+        
+            // Simulate transcription and translation logic
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        
+            // Simulate transcription result
+            const transcriptionResult = "{{sample_text1}}";
+        
+            // Simulate translation result
+            const translationResult = "{{sample_text2}}";
+        
+            // Display the results
+            document.getElementById('transcriptionResult').innerText = 'Transcription: ' + transcriptionResult;
+            document.getElementById('translationResultSection').innerText = 'Translation: ' + translationResult;
+        
+            // Show the results section
+            document.getElementById('resultsSection').style.display = 'block';
+        };
+        
+    </script>    
+    
+</body>
+</html>
